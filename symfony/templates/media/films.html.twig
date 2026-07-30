@@ -4646,14 +4646,23 @@ body.density-compact #modal-film .film-action-btn { font-size: .78rem; padding: 
   // has rendered. The controller has already switched to the page that holds
   // this id, so the card is guaranteed to be in the DOM. We strip only the
   // `open` param afterwards so a refresh re-renders the same filter view
-  // without re-triggering the modal.
+  // without re-triggering the modal. The strip is deferred until after the
+  // click (rather than immediate) so library-filter-memory.js's DOMContentLoaded
+  // handler still sees `open` in the URL and doesn't mistake it for a bare
+  // page load that should redirect to the last saved filters.
   var openParam = new URLSearchParams(window.location.search).get('open');
   if (openParam) {
     var target = document.querySelector('.media-card[data-id="' + openParam + '"]');
-    if (target) setTimeout(function() { target.click(); }, 300);
-    var cleanUrl = new URL(window.location.href);
-    cleanUrl.searchParams.delete('open');
-    history.replaceState(null, '', cleanUrl.pathname + (cleanUrl.search ? cleanUrl.search : '') + cleanUrl.hash);
+    var stripOpenParam = function () {
+      var cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('open');
+      history.replaceState(null, '', cleanUrl.pathname + (cleanUrl.search ? cleanUrl.search : '') + cleanUrl.hash);
+    };
+    if (target) {
+      setTimeout(function() { target.click(); stripOpenParam(); }, 300);
+    } else {
+      stripOpenParam();
+    }
   }
 
 })();
